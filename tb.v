@@ -1,3 +1,6 @@
+`include "single-cycle.v"
+`timescale 1ns/1ns
+
 //tb.testbench
 module testbench;
 	reg clk;
@@ -33,4 +36,9 @@ module testbench;
 				$display("Simulation failed");
 				$stop;
 			end
+	initial
+    	begin
+    	$dumpfile("single-cycle.vcd");
+  		$dumpvars;
+    end
 endmodule
