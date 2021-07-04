@@ -101,7 +101,7 @@ module arm (
 	wire PCSrc;
 	wire [1:0] RegSrc;
 	wire [1:0] ImmSrc;
-	wire [1:0] ALUControl;
+	wire [2:0] ALUControl;
   
   //alu y outputs de control de instrucciones
 	controller c(
@@ -164,7 +164,7 @@ module controller (
 	output wire RegWrite;
 	output wire [1:0] ImmSrc;
 	output wire ALUSrc;
-	output wire [1:0] ALUControl;
+	output wire [2:0] ALUControl;
 	output wire MemWrite;
 	output wire MemtoReg;
 	output wire PCSrc;
@@ -231,7 +231,7 @@ module decode (
 	output wire ALUSrc;
 	output wire [1:0] ImmSrc;
 	output wire [1:0] RegSrc;
-	output reg [1:0] ALUControl;
+	output reg [2:0] ALUControl;
 	reg [9:0] controls;
 	wire Branch;
 	wire ALUOp;
@@ -254,18 +254,18 @@ module decode (
 	always @(*)
 		if (ALUOp) begin
 			case (Funct[4:1])
-				4'b0100: ALUControl = 2'b00;
-				4'b0010: ALUControl = 2'b01;
-				4'b0000: ALUControl = 2'b10;
-				4'b1100: ALUControl = 2'b11;
-        //4'b0001: ALUControl = 3'b100
-				default: ALUControl = 2'bxx;
+				4'b0100: ALUControl = 3'b00;
+				4'b0010: ALUControl = 3'b001;
+				4'b0000: ALUControl = 3'b010;
+				4'b1100: ALUControl = 3'b011;
+				4'b0001: ALUControl = 3'b101;
+				default: ALUControl = 3'xbxx;
 			endcase
 			FlagW[1] = Funct[0];
-			FlagW[0] = Funct[0] & ((ALUControl == 2'b00) | (ALUControl == 2'b01));
+			FlagW[0] = Funct[0] & ((ALUControl == 3'b000) | (ALUControl == 3'b001));
 		end
 		else begin
-			ALUControl = 2'b00;
+			ALUControl = 3'b000;
 			FlagW = 2'b00;
 		end
 	assign PCS = ((Rd == 4'b1111) & RegW) | Branch;
@@ -388,7 +388,7 @@ module datapath (
 	input wire RegWrite;
 	input wire [1:0] ImmSrc;
 	input wire ALUSrc;
-	input wire [1:0] ALUControl;
+	input wire [2:0] ALUControl;
 	input wire MemtoReg;
 	input wire PCSrc;
 	output wire [3:0] ALUFlags;
@@ -506,7 +506,7 @@ endmodule
 
 //alu process
 module alu ( input [31:0] SrcA,SrcB,
-             input [1:0] ALUControl,
+             input [2:0] ALUControl,
              output reg [31:0] Result, //assign always block
              output wire [3:0] ALUFlags); //explicit wire for assign with {}
   
@@ -524,10 +524,11 @@ module alu ( input [31:0] SrcA,SrcB,
   11: or
   */
   always @(*)
-    casex (ALUControl[1:0]) //case, casex, casez
-      2'b0?: Result = sum;
-      2'b10: Result = SrcA & SrcB;
-      2'b11: Result = SrcA | SrcB;
+    casex (ALUControl[2:0]) //case, casex, casez
+      3'b00?: Result = sum;
+      3'b010: Result = SrcA & SrcB;
+      3'b011: Result = SrcA | SrcB;
+	  3'b101: Result = (~SrcA & SrcB) | (SrcA & ~SrcB);
     endcase
   
  //flags: result -> negative, zero
